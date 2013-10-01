@@ -5,8 +5,9 @@
 #include <stdbool.h>
 #include <unistd.h>
 
+// a token from parsing a request.
 typedef struct token_s {
-    char *value;
+    char   *value;
     size_t length;
 } token_t;
 
@@ -29,7 +30,6 @@ typedef struct token_s {
 
 size_t tokenize_command(char *command, token_t *tokens, const size_t max_tokens);
 bool parse_command(conn *c, char *command);
-
 
 #endif
 

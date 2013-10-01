@@ -7,7 +7,7 @@
 
 extern settings config;
 void event_handler(const int fd, const short which, void *arg);
-inline void process_get_command(conn *c, token_t *tokens, size_t ntokens, bool return_cas);
+void out_string(conn *c, const char *str);
 
 #endif
 

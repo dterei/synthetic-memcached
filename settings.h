@@ -2,6 +2,8 @@
 #ifndef _SETTINGS_H
 #define _SETTINGS_H
 
+#include <stdbool.h>
+
 // Settings the server has
 typedef struct _settings {
 	int verbose;
@@ -11,7 +13,7 @@ typedef struct _settings {
 
 void usage(void);
 settings settings_init(void);
-int settings_parse(int argc, char **argv, settings *s);
+bool settings_parse(int argc, char **argv, settings *s);
 
 #endif
 

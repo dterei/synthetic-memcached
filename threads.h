@@ -32,7 +32,6 @@ typedef struct {
 } dispatcher_thread_t;
 
 void thread_init(int nthreads, struct event_base *main_base);
-
 void dispatch_conn_new(int sfd, enum conn_states init_state, int event_flags,
                        int read_buffer_size);
 

@@ -62,7 +62,9 @@ typedef struct _conn {
 	int    msgcurr;   // element in msglist[] being transmitted now.
 	int    msgbytes;  // number of bytes in current msg.
 
-	item   **ilist; // list of items to write out.
+	item   **ilist; // list of items we currently have retained / owned. Done
+						 // for ref-counting purposes while we write out data
+						 // associated with them.
 	int    isize;   // number of elements in ilist.
 	item   **icurr; // current free slot in ilist.
 	int    ileft;   // space left in ilist for allocaiton.
@@ -75,8 +77,6 @@ conn *conn_new(const int sfd,
                const int event_flags,
                const int read_buffer_size,
                struct event_base *base);
-void conn_free(conn *c);
-int conn_add_to_freelist(conn *c);
 void conn_close(conn *c);
 
 // in-flight connection management.

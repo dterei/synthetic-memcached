@@ -22,11 +22,15 @@
 #include <ctype.h>
 #include <stdarg.h>
 
-/* need this to get IOV_MAX on some platforms. */
+// need this to get IOV_MAX on some platforms.
 #ifndef __need_IOV_MAX
 #define __need_IOV_MAX
 #endif
 #include <limits.h>
+
+// prototypes.
+static bool conn_add_to_freelist(conn *c);
+static void conn_free(conn *c);
 
 // Free list management for connections.
 static conn **freeconns;
@@ -56,12 +60,12 @@ static conn *conn_from_freelist() {
 }
 
 // Adds a connection to the freelist. 0 = success.
-int conn_add_to_freelist(conn *c) {
-    int ret = 0;
+static bool conn_add_to_freelist(conn *c) {
+    int ret = false;
     pthread_mutex_lock(&conn_lock);
     if (freecurr < freetotal) {
         freeconns[freecurr++] = c;
-        ret = 1;
+        ret = true;
     } else {
         /* try to enlarge free connections array */
         size_t newsize = freetotal * 2;
@@ -70,7 +74,7 @@ int conn_add_to_freelist(conn *c) {
             freetotal = newsize;
             freeconns = new_freeconns;
             freeconns[freecurr++] = c;
-            ret = 1;
+            ret = true;
         }
     }
     pthread_mutex_unlock(&conn_lock);
@@ -130,7 +134,7 @@ conn *conn_new(const int sfd,
 	c->ev_flags = event_flags;
 
 	if (event_add(&c->event, 0) == -1) {
-		if (conn_add_to_freelist(c)) {
+		if (!conn_add_to_freelist(c)) {
 			conn_free(c);
 		}
 		perror("event_add");
@@ -141,12 +145,13 @@ conn *conn_new(const int sfd,
 }
 
 // Frees a connection.
-void conn_free(conn *c) {
+static void conn_free(conn *c) {
 	if (c) {
 		if (c->rbuf) free(c->rbuf);
 		if (c->wbuf) free(c->wbuf);
 		if (c->iov)  free(c->iov);
 		if (c->msglist) free(c->msglist);
+		if (c->ilist) free(c->ilist);
 
 		free(c);
 	}
@@ -164,7 +169,7 @@ void conn_close(conn *c) {
 	close(c->sfd);
 
 	/* if the connection has big buffers, just free it */
-	if (conn_add_to_freelist(c)) {
+	if (!conn_add_to_freelist(c)) {
 		conn_free(c);
 	}
 }

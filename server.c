@@ -1,4 +1,17 @@
 // Memcached fake, benchmarking server.
+//
+// This implements the architecture of memcached, so a fairly high-performance
+// network service for request/response style workloads. Multi-threaded with
+// whole connections as the unit of distribution for load-balancing.
+// Connections are round-robbin'd to threads and once assigned, are stuck.
+//
+// No load-balancing or QoS after that.
+//
+// Code is largely taken from memcached itself but cleaned up a lot.
+//
+// Implemented commands:
+// * GET -- just respond with a fixed value to every single key.
+//
 #include "connections.h"
 #include "fsm.h"
 #include "items.h"
@@ -44,11 +57,11 @@ static int server_socket(int port);
 static void drive_machine(conn *c);
 static void reset_cmd_handler(conn *c);
 static read_result read_network(conn *c);
-static int read_command(conn *c);
+static bool read_command(conn *c);
 static void process_command(conn *c, char *command);
 static write_result transmit(conn *c);
-static void out_string(conn *c, const char *str);
 
+// globals
 settings config;
 static conn *listen_conn = NULL;
 static struct event_base *main_base;
@@ -73,20 +86,22 @@ int main (int argc, char **argv) {
 		exit(EX_OSERR);
 	}
 	
+	// parse settings.
 	config = settings_init();
-	int r = settings_parse(argc, argv, &config);
-	if (r) return r;
+	if (!settings_parse(argc, argv, &config)) {
+		return 1;
+	}
 
-	/* initialize main thread libevent instance */
+	// initialize main thread libevent instance.
 	main_base = event_init();
 
-	/* initialize other stuff */
+	// initialize other stuff.
 	conn_init();
 
-	/* start up worker threads */
+	// start up worker threads.
 	thread_init(config.threads, main_base);
 
-    /* create the listening socket, bind it, and init */
+	// create the listening socket, bind it, and init.
 	errno = 0;
 	if (server_socket(config.tcpport)) {
 		fprintf(stderr, "failed to listen on TCP port %d", config.tcpport);
@@ -97,7 +112,7 @@ int main (int argc, char **argv) {
 	// only an advisory.
 	usleep(1000);
 
-	/* enter the event loop */
+	// enter the event loop.
 	if (event_base_loop(main_base, 0) != 0) {
 		retval = EXIT_FAILURE;
 	}
@@ -320,8 +335,8 @@ static void drive_machine(conn *c) {
 				break;
 
 			case conn_parse_cmd :
-				if (read_command(c) == 0) {
-					/* wee need more data! */
+				if (!read_command(c)) {
+					/* we need more data! */
 					conn_set_state(c, conn_waiting);
 				}
 				break;
@@ -458,15 +473,15 @@ static read_result read_network(conn *c) {
 }
 
 // if we have a complete line in the buffer, process it.
-// @return 0 when more data is needed, 1 otherwise.
-static int read_command(conn *c) {
+// @return false when more data is needed, true otherwise.
+static bool read_command(conn *c) {
 	assert(c != NULL);
 	assert(c->rcurr <= (c->rbuf + c->rsize));
 	assert(c->rbytes > 0);
 
 	char *el, *cont;
 
-	if (c->rbytes == 0) return 0;
+	if (c->rbytes == 0) return false;
 
 	// find end-of-line.
 	el = memchr(c->rcurr, '\n', c->rbytes);
@@ -482,10 +497,10 @@ static int read_command(conn *c) {
 			if (ptr - c->rcurr > 100 ||
 			    (strncmp(ptr, "get ", 4) && strncmp(ptr, "gets ", 5))) {
 				conn_set_state(c, conn_closing);
-				return 1;
+				return true;
 			}
 		}
-		return 0;
+		return false;
 	}
 
 	// found end-of-line.
@@ -501,7 +516,7 @@ static int read_command(conn *c) {
 	c->rbytes -= (cont - c->rcurr);
 	c->rcurr = cont;
 	assert(c->rcurr <= (c->rbuf + c->rsize));
-	return 1;
+	return true;
 }
 
 // parse a single memcached request.
@@ -526,97 +541,6 @@ static void process_command(conn *c, char *command) {
 	// parse_command also handles dispatching it.
 	if (!parse_command(c, command)) {
 		out_string(c, "ERROR");
-	}
-}
-
-// process a memcached get(s) command. (we don't support CAS).
-inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
-                                bool return_cas) {
-	char *key;
-	size_t nkey;
-	int i = 0;
-	item *it;
-	token_t *key_token = &tokens[KEY_TOKEN];
-	char *suffix;
-
-	assert(c != NULL);
-
-	// process the whole command line, (only part of it may be tokenized right now)
-	do {
-		// process all tokenized keys at this stage.
-		while(key_token->length != 0) {
-			key = key_token->value;
-			nkey = key_token->length;
-
-			if(nkey > KEY_MAX_LENGTH) {
-				out_string(c, "CLIENT_ERROR bad command line format");
-				return;
-			}
-
-			// lookup key-value.
-			it = item_get(key, nkey);
-			
-			// hit.
-			if (it) {
-				if (i >= c->isize && !conn_expand_items(c)) {
-					item_remove(it);
-					break;
-				}
-
-				// Construct the response. Each hit adds three elements to the
-				// outgoing data list:
-				//   "VALUE <key> <flags> <data_length>\r\n"
-				//   "<data>\r\n"
-				// The <data> element is stored on the connection item list, not on
-				// the iov list.
-				if (!conn_add_iov(c, "VALUE ", 6) != 0 ||
-				    !conn_add_iov(c, ITEM_key(it), it->nkey) != 0 ||
-				    !conn_add_iov(c, ITEM_suffix(it), it->nsuffix + it->nbytes) != 0) {
-					item_remove(it);
-					break;
-				}
-
-				if (config.verbose > 1) {
-					fprintf(stderr, ">%d sending key %s\n", c->sfd, key);
-				}
-
-				// add item to remembered list (i.e., we've taken ownership of them
-				// through refcounting and later must release them once we've
-				// written out the iov associated with them).
-				item_update(it);
-				*(c->ilist + i) = it;
-				i++;
-			}
-
-			key_token++;
-		}
-
-		/*
-		 * If the command string hasn't been fully processed, get the next set
-		 * of tokens.
-		 */
-		if(key_token->value != NULL) {
-			ntokens = tokenize_command(key_token->value, tokens, MAX_TOKENS);
-			key_token = tokens;
-		}
-
-	} while(key_token->value != NULL);
-
-	c->icurr = c->ilist;
-	c->ileft = i;
-
-	if (config.verbose > 1) {
-		fprintf(stderr, ">%d END\n", c->sfd);
-	}
-
-	// If the loop was terminated because of out-of-memory, it is not reliable
-	// to add END\r\n to the buffer, because it might not end in \r\n. So we
-	// send SERVER_ERROR instead.
-	if (key_token->value != NULL || !conn_add_iov(c, "END\r\n", 5) != 0) {
-		out_string(c, "SERVER_ERROR out of memory writing get response");
-	} else {
-		conn_set_state(c, conn_mwrite);
-		c->msgcurr = 0;
 	}
 }
 
@@ -684,7 +608,7 @@ static write_result transmit(conn *c) {
 
 // write out a string to the connection, clearing an existing pending data.
 // This is usually used for error cases.
-static void out_string(conn *c, const char *str) {
+void out_string(conn *c, const char *str) {
 	size_t len;
 
 	assert(c != NULL);

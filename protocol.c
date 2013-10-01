@@ -1,3 +1,4 @@
+#include "commands.h"
 #include "connections.h"
 #include "protocol.h"
 #include "server.h"

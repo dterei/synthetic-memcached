@@ -25,7 +25,7 @@ settings settings_init(void) {
 }
 
 // process arguments
-int settings_parse(int argc, char **argv, settings *s) {
+bool settings_parse(int argc, char **argv, settings *s) {
 	char c;
 	while (-1 != (c = getopt(argc, argv,
 	       "p:"  /* TCP port number to listen on */
@@ -47,13 +47,13 @@ int settings_parse(int argc, char **argv, settings *s) {
 			s->threads = atoi(optarg);
 			if (s->threads <= 0) {
 				fprintf(stderr, "Number of threads must be greater than 0\n");
-				return 1;
+				return false;
 			}
 		default:
 			fprintf(stderr, "Illegal argument \"%c\"\n", c);
-			return 1;
+			return false;
 		}
 	}
-	return 0;
+	return true;
 }
 
