@@ -22,15 +22,15 @@ enum conn_states {
 static const char *state_text(enum conn_states state) {
 	const char* const statenames[] = { "conn_min_state",
 	                                   "conn_listening",
-                                      "conn_new_cmd",
-                                      "conn_waiting",
-                                      "conn_read",
-                                      "conn_parse_cmd",
-												  "conn_read_value",
-												  "conn_swallow",
-                                      "conn_write",
-                                      "conn_mwrite",
-                                      "conn_closing"};
+	                                   "conn_new_cmd",
+	                                   "conn_waiting",
+	                                   "conn_read",
+	                                   "conn_parse_cmd",
+	                                   "conn_read_value",
+	                                   "conn_swallow",
+	                                   "conn_write",
+	                                   "conn_mwrite",
+	                                   "conn_closing"};
 	return statenames[state];
 }
 
