@@ -239,7 +239,7 @@ void event_handler(const int fd, const short which, void *arg) {
 
 	drive_machine(c);
 
-	/* wait for next event */
+	// onto next event.
 	return;
 }
 
@@ -252,6 +252,7 @@ static void drive_machine(conn *c) {
 	int nreqs = REQ_PER_EVENT;
 	int res;
 	const char *str;
+	struct timeval t = { 0, 0 };
 
 	assert(c != NULL);
 
@@ -297,6 +298,11 @@ static void drive_machine(conn *c) {
 					// just put in a request to write data, because that should be
 					// possible ;-)
 					if (!conn_update_event(c, EV_WRITE | EV_PERSIST)) {
+						conn_set_state(c, conn_closing);
+						break;
+					}
+				} else {
+					if (!conn_update_event(c, EV_READ | EV_PERSIST)) {
 						conn_set_state(c, conn_closing);
 						break;
 					}
@@ -435,6 +441,25 @@ static void drive_machine(conn *c) {
 					break;
 				}
 				break;
+
+		case conn_timeout:
+			c->old_ev_flags = c->ev_flags;
+			t.tv_usec = c->timeout;
+			if (!conn_update_event_t(c, 0, &t)) {
+				conn_set_state(c, conn_closing);
+			} else {
+				conn_set_state(c, conn_timeout_post);
+			}
+			stop = true;
+			break;
+
+		case conn_timeout_post:
+			conn_set_state(c, c->after_timeout);
+			if (!conn_update_event(c, c->old_ev_flags)) {
+				conn_set_state(c, conn_closing);
+				break;
+			}
+			break;
 
 		case conn_closing:
 			conn_close(c);

@@ -14,6 +14,8 @@ enum conn_states {
 	conn_swallow,
 	conn_write,
 	conn_mwrite,
+	conn_timeout,
+	conn_timeout_post,
 	conn_closing,
 	conn_max_state
 };
@@ -30,6 +32,8 @@ static const char *state_text(enum conn_states state) {
 	                                   "conn_swallow",
 	                                   "conn_write",
 	                                   "conn_mwrite",
+												  "conn_timeout",
+												  "conn_timeout_post",
 	                                   "conn_closing"};
 	return statenames[state];
 }

@@ -27,12 +27,15 @@ typedef struct _conn {
 	int sfd;                         // underlying socket.
 	struct event event;
 	short ev_flags;
+	short old_ev_flags;              // used for save ev_flags over timeout.
 	struct _worker_thread_t *thread; // thread managing this connection.
 
 	enum conn_states state;          // fsm state.
 	enum conn_states after_write;    // fsm state to transition to after writing wbuf.
+	enum conn_states after_timeout;  // fsm state to transition to after timeout.
 	short which;                     // which event generate the event.
 	int cmd;                         // which memcached cmd are we processing.
+	suseconds_t timeout;             // amount to delay connection for (microseconds).
 
 	// [..........|...........^...................]
 	// ^          ^                               ^
@@ -85,6 +88,7 @@ void conn_close(conn *c);
 // in-flight connection management.
 void conn_set_state(conn *c, enum conn_states state);
 int conn_update_event(conn *c, const int new_flags);
+int conn_update_event_t(conn *c, const int new_flags, struct timeval *t);
 void conn_shrink(conn *c);
 int conn_add_msghdr(conn *c);
 bool conn_add_iov(conn *c, const void *buf, int len);

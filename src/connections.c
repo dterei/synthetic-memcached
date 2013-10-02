@@ -193,6 +193,11 @@ void conn_set_state(conn *c, enum conn_states state) {
 
 // update the event type for connection that we are listening on.
 int conn_update_event(conn *c, const int new_flags) {
+	return conn_update_event_t(c, new_flags, NULL);
+}
+
+// update the event type for connection that we are listening on (with timeout).
+int conn_update_event_t(conn *c, const int new_flags, struct timeval *t) {
 	assert(c != NULL);
 	struct event_base *base = c->event.ev_base;
 
@@ -209,7 +214,7 @@ int conn_update_event(conn *c, const int new_flags) {
 	event_base_set(base, &c->event);
 	c->ev_flags = new_flags;
 
-	if (event_add(&c->event, 0) == -1) {
+	if (event_add(&c->event, t) == -1) {
 		if (config.verbose > 0) {
 			fprintf(stderr, "Couldn't update event\n");
 		}
