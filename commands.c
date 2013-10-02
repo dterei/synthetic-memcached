@@ -4,6 +4,7 @@
 #include "connections.h"
 #include "protocol.h"
 #include "server.h"
+#include "utils.h"
 
 #include <assert.h>
 
@@ -96,5 +97,28 @@ void process_get_command(conn *c, token_t *tokens, size_t ntokens,
 		conn_set_state(c, conn_mwrite);
 		c->msgcurr = 0;
 	}
+}
+
+// process a memcached set command.
+void process_update_command(conn *c, token_t *tokens,
+                            const size_t ntokens,
+                            int comm, bool handle_cas) {
+	int vlen;
+	assert(c != NULL);
+
+	if (tokens[KEY_TOKEN].length > KEY_MAX_LENGTH ||
+	    !safe_strtol(tokens[4].value, (int32_t *)&vlen)) {
+		out_string(c, "CLIENT_ERROR bad command line format");
+		return;
+	}
+
+	if (vlen < 0) {
+		out_string(c, "CLIENT_ERROR bad command line format");
+		return;
+	}
+
+	// setup value to be read
+	c->sbytes = vlen + 2; // for \r\n consumption.
+	conn_set_state(c, conn_read_value);
 }
 

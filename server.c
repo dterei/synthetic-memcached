@@ -327,7 +327,7 @@ static void drive_machine(conn *c) {
 					conn_set_state(c, conn_closing);
 					break;
 				case READ_MEMORY_ERROR:
-					c->rbytes = 0; /* ignore what we read */
+					c->rbytes = 0; // ignore what we read.
 					out_string(c, "SERVER_ERROR out of memory reading request");
 					c->after_write = conn_closing;
 					break;
@@ -336,8 +336,56 @@ static void drive_machine(conn *c) {
 
 			case conn_parse_cmd :
 				if (!read_command(c)) {
-					/* we need more data! */
+					// we need more data!
 					conn_set_state(c, conn_waiting);
+				}
+				break;
+
+			case conn_read_value:
+				// read value just swallows the value.
+				if (c->sbytes == 0) {
+					out_string(c, "STORED");
+					break;
+				}
+				// fall through...
+
+			case conn_swallow:
+				// we are reading sbytes and throwing them away.
+				if (c->sbytes == 0) {
+					conn_set_state(c, conn_new_cmd);
+					break;
+				}
+
+				// first check if we have leftovers in the conn_read buffer.
+				if (c->rbytes > 0) {
+					int tocopy = c->rbytes > c->sbytes ? c->sbytes : c->rbytes;
+					c->sbytes -= tocopy;
+					c->rcurr += tocopy;
+					c->rbytes -= tocopy;
+					break;
+				}
+
+				//  now try reading from the socket.
+				res = read(c->sfd, c->rbuf, c->rsize > c->sbytes ? c->sbytes : c->rsize);
+				if (res > 0) {
+					c->sbytes -= res;
+					break;
+				} else if (res == 0) { // end of stream.
+					conn_set_state(c, conn_closing);
+					break;
+				} else if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+					if (!conn_update_event(c, EV_READ | EV_PERSIST)) {
+						conn_set_state(c, conn_closing);
+						break;
+					}
+					stop = true;
+					break;
+				} else {
+					// otherwise we have a real error, on which we close the connection.
+					if (config.verbose > 0) {
+						fprintf(stderr, "Failed to read, and not due to blocking\n");
+					}
+					conn_set_state(c, conn_closing);
 				}
 				break;
 
@@ -354,7 +402,7 @@ static void drive_machine(conn *c) {
 						break;
 					}
 				}
-            /* fall through... */
+            // fall through...
 
 			case conn_mwrite:
 				switch (transmit(c)) {
@@ -380,7 +428,7 @@ static void drive_machine(conn *c) {
 
 				case TRANSMIT_INCOMPLETE:
 				case TRANSMIT_HARD_ERROR:
-					break; /* Continue in state machine. */
+					break; // Continue in state machine.
 
 				case TRANSMIT_SOFT_ERROR:
 					stop = true;
@@ -584,9 +632,6 @@ static write_result transmit(conn *c) {
 
 		} else if (res == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
 			if (!conn_update_event(c, EV_WRITE | EV_PERSIST)) {
-				if (config.verbose > 0) {
-					fprintf(stderr, "Couldn't update event\n");
-				}
 				conn_set_state(c, conn_closing);
 				return TRANSMIT_HARD_ERROR;
 			}

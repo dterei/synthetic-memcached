@@ -84,17 +84,17 @@ bool parse_command(conn *c, char *command) {
 			(strcmp(tokens[COMMAND_TOKEN].value, "gets") == 0)) {
 		process_get_command(c, tokens, ntokens, true);
 
-	/* } else if ((ntokens == 6 || ntokens == 7) && */
-	/* 		((strcmp(tokens[COMMAND_TOKEN].value, "add") == 0 && (comm = NREAD_ADD)) || */
-	/* 		(strcmp(tokens[COMMAND_TOKEN].value, "set") == 0 && (comm = NREAD_SET)) || */
-	/* 		(strcmp(tokens[COMMAND_TOKEN].value, "replace") == 0 && (comm = NREAD_REPLACE)) || */
-	/* 		(strcmp(tokens[COMMAND_TOKEN].value, "prepend") == 0 && (comm = NREAD_PREPEND)) || */
-	/* 		(strcmp(tokens[COMMAND_TOKEN].value, "append") == 0 && (comm = NREAD_APPEND)) )) { */
-	/* 	process_update_command(c, tokens, ntokens, comm, false); */
+	} else if ((ntokens == 6 || ntokens == 7) &&
+			((strcmp(tokens[COMMAND_TOKEN].value, "add") == 0 && (comm = NREAD_ADD)) ||
+			(strcmp(tokens[COMMAND_TOKEN].value, "set") == 0 && (comm = NREAD_SET)) ||
+			(strcmp(tokens[COMMAND_TOKEN].value, "replace") == 0 && (comm = NREAD_REPLACE)) ||
+			(strcmp(tokens[COMMAND_TOKEN].value, "prepend") == 0 && (comm = NREAD_PREPEND)) ||
+			(strcmp(tokens[COMMAND_TOKEN].value, "append") == 0 && (comm = NREAD_APPEND)) )) {
+		process_update_command(c, tokens, ntokens, comm, false);
 
-	/* } else if ((ntokens == 7 || ntokens == 8) && */
-	/* 		(strcmp(tokens[COMMAND_TOKEN].value, "cas") == 0 && (comm = NREAD_CAS))) { */
-	/* 	process_update_command(c, tokens, ntokens, comm, true); */
+	} else if ((ntokens == 7 || ntokens == 8) &&
+			(strcmp(tokens[COMMAND_TOKEN].value, "cas") == 0 && (comm = NREAD_CAS))) {
+		process_update_command(c, tokens, ntokens, comm, true);
 
 	/* } else if ((ntokens == 4 || ntokens == 5) && */
 	/* 		(strcmp(tokens[COMMAND_TOKEN].value, "incr") == 0)) { */

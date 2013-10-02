@@ -52,22 +52,25 @@ typedef struct _conn {
 	char *wcurr;                     // pointer into wbuf to end of written data.
 	int  wbytes;                     // remaining data in wbuf not yet written.
 
+	int sbytes;                      // bytes to swallow of the wire.
+
 	struct iovec *iov;
-	int    iovsize;   // number of elements allocated in iov[].
-	int    iovused;   // number of elements used in iov[].
+	int    iovsize;                  // number of elements allocated in iov[].
+	int    iovused;                  // number of elements used in iov[].
 
 	struct msghdr *msglist;
-	int    msgsize;   // number of elements allocated in msglist[].
-	int    msgused;   // number of elements used in msglist[].
-	int    msgcurr;   // element in msglist[] being transmitted now.
-	int    msgbytes;  // number of bytes in current msg.
+	int    msgsize;                  // number of elements allocated in msglist[].
+	int    msgused;                  // number of elements used in msglist[].
+	int    msgcurr;                  // element in msglist[] being transmitted now.
+	int    msgbytes;                 // number of bytes in current msg.
 
-	item   **ilist; // list of items we currently have retained / owned. Done
-						 // for ref-counting purposes while we write out data
-						 // associated with them.
-	int    isize;   // number of elements in ilist.
-	item   **icurr; // current free slot in ilist.
-	int    ileft;   // space left in ilist for allocaiton.
+	item   **ilist;                  // list of items we currently have retained
+	                                 // owned. Done for ref-counting purposes
+												// while we write out data associated with
+												// them.
+	int    isize;                    // number of elements in ilist.
+	item   **icurr;                  // current free slot in ilist.
+	int    ileft;                    // space left in ilist for allocaiton.
 } conn;
 
 // new connection management.

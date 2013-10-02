@@ -10,6 +10,8 @@ enum conn_states {
 	conn_waiting,
 	conn_read,
 	conn_parse_cmd,
+	conn_read_value,
+	conn_swallow,
 	conn_write,
 	conn_mwrite,
 	conn_closing,
@@ -24,6 +26,8 @@ static const char *state_text(enum conn_states state) {
                                       "conn_waiting",
                                       "conn_read",
                                       "conn_parse_cmd",
+												  "conn_read_value",
+												  "conn_swallow",
                                       "conn_write",
                                       "conn_mwrite",
                                       "conn_closing"};
