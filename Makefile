@@ -1,9 +1,9 @@
 CC=clang
-CFLAGS=-O2
-LDFLAGS=-levent
+CFLAGS=-O2 -D_GNU_SOURCE
+LDFLAGS=-levent -pthread
 
 EXECUTABLE=server
-SOURCES=commands.c connections.c items.c protocol.c server.c settings.c threads.c
+SOURCES=commands.c connections.c items.c protocol.c server.c settings.c threads.c utils.c
 OBJECTS=$(SOURCES:.c=.o)
 
 all: $(SOURCES) $(EXECUTABLE)
