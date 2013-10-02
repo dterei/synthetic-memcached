@@ -16,6 +16,8 @@ Code is largely taken from memcached itself but cleaned up a lot.
 
 Implemented commands:
  * GET -- just respond with a fixed value to every single key.
+ * SET -- parses command and returns ok but doesn't actually store
+          data.
 
 Other commands could be added easily but aren't needed for what I
 want.
