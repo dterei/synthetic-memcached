@@ -1,6 +1,6 @@
 CC=clang
-CFLAGS=-O2
-LDFLAGS=-levent
+CFLAGS=-O2 -D_GNU_SOURCE
+LDFLAGS=-levent -pthread
 
 EXECUTABLE=server
 SOURCE_FILES=commands.c connections.c items.c protocol.c server.c settings.c threads.c utils.c
