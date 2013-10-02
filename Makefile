@@ -1,6 +1,6 @@
-CC=clang
+CC=gcc
 CFLAGS=-O2 -D_GNU_SOURCE
-LDFLAGS=-levent -pthread
+LDFLAGS=-levent -pthread -lrt
 
 EXECUTABLE=server
 SOURCE_FILES=commands.c connections.c items.c protocol.c server.c settings.c threads.c utils.c
@@ -20,7 +20,7 @@ build:
 	@mkdir -p $@
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(LDFLAGS) -o $@ $+
+	$(CC) -o $@ $+ $(LDFLAGS)
 
 build/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@

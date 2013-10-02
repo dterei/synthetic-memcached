@@ -7,6 +7,7 @@
 #include "utils.h"
 
 #include <assert.h>
+#include <stdio.h>
 
 // process a memcached get(s) command. (we don't support CAS).
 void process_get_command(conn *c, token_t *tokens, size_t ntokens,
