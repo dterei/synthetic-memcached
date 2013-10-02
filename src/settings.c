@@ -49,6 +49,7 @@ bool settings_parse(int argc, char **argv, settings *s) {
 				fprintf(stderr, "Number of threads must be greater than 0\n");
 				return false;
 			}
+			break;
 		default:
 			fprintf(stderr, "Illegal argument \"%c\"\n", c);
 			return false;
