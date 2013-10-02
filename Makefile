@@ -1,21 +1,27 @@
 CC=clang
-CFLAGS=-O2 -D_GNU_SOURCE
-LDFLAGS=-levent -pthread
+CFLAGS=-O2
+LDFLAGS=-levent
 
 EXECUTABLE=server
-SOURCES=commands.c connections.c items.c protocol.c server.c settings.c threads.c utils.c
-OBJECTS=$(SOURCES:.c=.o)
+SOURCE_FILES=commands.c connections.c items.c protocol.c server.c settings.c threads.c utils.c
+SOURCES=$(patsubst %,src/%,$(SOURCE_FILES))
+OBJECTS=$(patsubst %.c,build/%.o,$(SOURCE_FILES))
 
 all: $(SOURCES) $(EXECUTABLE)
 
 .PHONY: clean
 clean:
 	rm -f server
-	rm -f *.o
+	rm -f build/*.o
+
+$(OBJECTS): | build
+
+build:
+	@mkdir -p $@
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(LDFLAGS) -o $@ $(OBJECTS)
+	$(CC) $(LDFLAGS) -o $@ $+
 
-.c.o:
+build/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
