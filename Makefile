@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-O2 -D_GNU_SOURCE
-LDFLAGS=-levent -pthread -lrt -lgsl -lgslcblas
+LDFLAGS=-levent -pthread -lgsl -lgslcblas
 
 EXECUTABLE=server
 SOURCE_FILES=commands.c connections.c items.c protocol.c server.c settings.c threads.c utils.c
