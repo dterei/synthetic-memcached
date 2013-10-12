@@ -99,7 +99,9 @@ void process_get_command(conn *c, token_t *tokens, size_t ntokens,
 	} else {
 		if (config.use_dist) {
 			double r = config.dist_arg1 + gsl_ran_gaussian(config.r, config.dist_arg2);
-			fprintf(stderr, "delay: %f\n", r);
+			if (config.verbose > 0) {
+				fprintf(stderr, "delay: %f\n", r);
+			}
 			conn_set_state(c, conn_timeout);
 			c->after_timeout = conn_mwrite;
 			c->timeout = r;
