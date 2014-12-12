@@ -1,4 +1,4 @@
-# Synthetic Memcached
+# Synthetic Memcached [![Build Status](https://img.shields.io/travis/dterei/synthetic-memcached.svg?style=flat)](https://travis-ci.org/dterei/synthetic-memcached)
 
 Memcached fake, benchmarking server.
 
