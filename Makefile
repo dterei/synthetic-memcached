@@ -1,6 +1,9 @@
 CC=c99
 CFLAGS=-O2 -D_GNU_SOURCE
-LDFLAGS=-levent -pthread -lgsl -lgslcblas
+LDFLAGS=-lpthread
+
+CFLAGS+=`pkg-config --cflags gsl libevent`
+LDFLAGS+=`pkg-config --libs gsl libevent`
 
 EXECUTABLE=server
 SOURCE_FILES=commands.c connections.c items.c protocol.c server.c settings.c threads.c utils.c

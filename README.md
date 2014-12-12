@@ -12,6 +12,18 @@ No load-balancing or QoS after that.
 
 Code is largely taken from memcached itself but cleaned up a lot.
 
+## Building
+
+The code is simple enough that we just use a single make file, no
+autotools or other complications. We do call `pkg-config` to find
+libraries and expect you to have `gsl` and `libevent` installed.
+
+```
+make
+```
+
+Should be it!
+
 ## Memcached protocl support
 
 Implemented commands:
